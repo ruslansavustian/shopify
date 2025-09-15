@@ -18,6 +18,5 @@ COPY . .
 
 # Switch to PostgreSQL schema and build
 RUN npm run build:prod
-RUN npx prisma migrate deploy
 
 CMD ["npm", "run", "docker-start"]
