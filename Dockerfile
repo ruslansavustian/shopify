@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:20-alpine
 RUN apk add --no-cache openssl
 
 EXPOSE 3000
@@ -16,7 +16,9 @@ RUN npm remove @shopify/cli
 
 COPY . .
 
-RUN npm run db:postgres
+# Switch to PostgreSQL schema and generate client
+RUN cp prisma/schema.postgresql.prisma prisma/schema.prisma
+RUN npx prisma generate
 RUN npx prisma migrate deploy
 RUN npm run build
 
