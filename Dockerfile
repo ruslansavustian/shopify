@@ -16,8 +16,11 @@ RUN npm remove @shopify/cli
 
 COPY . .
 
-# Build with PostgreSQL
-RUN npm run db:postgres
+# Use PostgreSQL schema for production
+RUN cp prisma/schema.postgresql.prisma prisma/schema.prisma
+
+# Generate Prisma client and build
+RUN npx prisma generate
 RUN npm run build
 
-CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && PORT=${PORT:-3000} npm run start"]

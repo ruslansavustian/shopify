@@ -1,0 +1,29 @@
+# Production configuration for Railway deployment
+# Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
+
+client_id = "dc0b0520ad9dbf1b00ab7727ee807509"
+name = "funnel-discounts-app"
+application_url = "https://shopify-production-289b.up.railway.app"
+embedded = true
+handle = "funnel-discounts-app-1"
+
+[build]
+automatically_update_urls_on_dev = false
+include_config_on_deploy = true
+
+[webhooks]
+api_version = "2025-04"
+
+[access_scopes]
+# Learn more at https://shopify.dev/docs/apps/tools/cli/configuration#access_scopes
+scopes = "read_discounts,read_orders,read_products,read_themes,write_discounts,write_orders,write_products,write_themes"
+
+[auth]
+redirect_urls = [
+  "https://shopify-production-289b.up.railway.app/auth/callback", 
+  "https://shopify-production-289b.up.railway.app/auth/shopify/callback", 
+  "https://shopify-production-289b.up.railway.app/api/auth/callback"
+]
+
+[pos]
+embedded = false
