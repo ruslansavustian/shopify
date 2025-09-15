@@ -16,10 +16,8 @@ RUN npm remove @shopify/cli
 
 COPY . .
 
-# Switch to PostgreSQL schema and generate client
-RUN cp prisma/schema.postgresql.prisma prisma/schema.prisma
-RUN npx prisma generate
+# Switch to PostgreSQL schema and build
+RUN npm run build:prod
 RUN npx prisma migrate deploy
-RUN npm run build
 
 CMD ["npm", "run", "docker-start"]
