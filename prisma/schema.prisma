@@ -11,6 +11,8 @@ generator client {
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
+  // For Vercel, use in-memory database
+  // DATABASE_URL="file::memory:?cache=shared"
 }
 
 model Session {
