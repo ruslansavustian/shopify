@@ -16,7 +16,8 @@ RUN npm remove @shopify/cli
 
 COPY . .
 
-# Switch to PostgreSQL schema and build
-RUN npm run build:prod
+# Build with SQLite
+RUN npx prisma generate
+RUN npm run build
 
 CMD ["npm", "run", "docker-start"]

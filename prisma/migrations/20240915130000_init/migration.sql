@@ -13,6 +13,6 @@ CREATE TABLE "Session" (
     "email" TEXT,
     "accountOwner" BOOLEAN NOT NULL DEFAULT false,
     "locale" TEXT,
-    "collaborator" BOOLEAN DEFAULT false,
-    "emailVerified" BOOLEAN DEFAULT false
+    "collaborator" BOOLEAN,
+    "emailVerified" BOOLEAN
 );
