@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "npm run start",
+    "startCommand": "node server.js",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
@@ -14,7 +14,8 @@
     "production": {
       "variables": {
         "NODE_ENV": "production",
-        "HOST": "0.0.0.0"
+        "HOST": "0.0.0.0",
+        "PORT": "3000"
       }
     }
   }
