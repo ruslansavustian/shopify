@@ -10,7 +10,7 @@
     "config:use": "shopify app config use",
     "env": "shopify app env",
     "start": "remix-serve ./build/server/index.js",
-    "docker-start": "node reset-migrations.js && prisma migrate deploy && npm run start",
+    "docker-start": "node reset-migrations.cjs && prisma migrate deploy && npm run start",
     "build:prod": "cp prisma/schema.postgresql.prisma prisma/schema.prisma && npx prisma generate && npm run build",
     "db:postgres": "cp prisma/schema.postgresql.prisma prisma/schema.prisma && prisma generate",
     "db:sqlite": "git checkout prisma/schema.prisma && prisma generate",
