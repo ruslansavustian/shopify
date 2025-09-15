@@ -16,8 +16,8 @@ RUN npm remove @shopify/cli
 
 COPY . .
 
-# Build with SQLite (for Vercel)
-RUN npx prisma generate
+# Build with PostgreSQL
+RUN npm run db:postgres
 RUN npm run build
 
 CMD ["npm", "run", "start"]
