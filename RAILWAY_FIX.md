@@ -55,7 +55,9 @@ git push origin main
 
 ## Изменения в коде
 
-- Обновлен `railway.json` с правильным healthcheck путем
+- Обновлен `railway.json` с правильным healthcheck путем (`/health`)
 - Обновлен `package.json` для правильной обработки порта
 - Обновлен `Dockerfile` для правильной обработки порта
-- Добавлен скрипт проверки базы данных
+- Создан простой healthcheck endpoint в `app/routes/health.tsx`
+- Увеличен timeout для healthcheck до 300 секунд
+- Добавлены переменные окружения в `railway.json`
