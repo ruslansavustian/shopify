@@ -11,6 +11,7 @@
     "env": "shopify app env",
     "start": "remix-serve ./build/server/index.js",
     "docker-start": "prisma migrate deploy && npm run start",
+    "vercel-build": "npx prisma generate && npm run build",
     "db:postgres": "cp prisma/schema.postgresql.prisma prisma/schema.prisma && prisma generate",
     "db:sqlite": "git checkout prisma/schema.prisma && prisma generate",
     "lint": "eslint --cache --cache-location ./node_modules/.cache/eslint .",

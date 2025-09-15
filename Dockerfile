@@ -16,8 +16,8 @@ RUN npm remove @shopify/cli
 
 COPY . .
 
-# Build with SQLite
+# Build with SQLite (for Vercel)
 RUN npx prisma generate
 RUN npm run build
 
-CMD ["npm", "run", "docker-start"]
+CMD ["npm", "run", "start"]
