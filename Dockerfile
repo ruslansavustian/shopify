@@ -20,4 +20,4 @@ COPY . .
 RUN npm run db:postgres
 RUN npm run build
 
-CMD ["npm", "run", "start"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npm run start"]
