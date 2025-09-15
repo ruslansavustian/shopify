@@ -1,0 +1,8 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Кастомные стили для совместимости с Polaris */
+@layer base {
+  /* Сброс стилей для элементов, которые могут конфликтовать с Polaris */
+}

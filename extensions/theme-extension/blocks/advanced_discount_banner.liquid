@@ -1,0 +1,432 @@
+{% comment %}
+  Advanced Discount Banner Block for Funnel Discounts App
+  Displays dynamic discount information with progress tracking
+{% endcomment %}
+
+{% assign product_id = product.id | append: '' %}
+{% assign funnel_data = shop.metafields.funnel_discounts.funnels %}
+{% assign current_funnel = null %}
+{% assign discount_info = null %}
+{% assign cart_quantity = 0 %}
+
+{% comment %} Find the funnel that contains this product {% endcomment %}
+{% if funnel_data %}
+  {% assign funnels = funnel_data.value %}
+  {% if funnels %}
+    {% for funnel in funnels %}
+      {% if funnel.products contains product_id %}
+        {% assign current_funnel = funnel %}
+        {% break %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
+
+{% comment %} Calculate current cart quantity for this funnel {% endcomment %}
+{% if current_funnel %}
+  {% for item in cart.items %}
+    {% assign item_product_id = item.product.id | append: '' %}
+    {% if current_funnel.products contains item_product_id %}
+      {% assign cart_quantity = cart_quantity | plus: item.quantity %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% comment %} Only show banner if product is in a funnel {% endcomment %}
+{% if current_funnel %}
+  {% assign discount_info = current_funnel.discount_settings %}
+  {% assign next_tier = null %}
+  {% assign current_tier = null %}
+  
+  {% comment %} Find current and next discount tiers {% endcomment %}
+  {% for tier in discount_info.quantity_tiers %}
+    {% if cart_quantity >= tier.min_quantity %}
+      {% assign current_tier = tier %}
+    {% elsif next_tier == null or tier.min_quantity < next_tier.min_quantity %}
+      {% assign next_tier = tier %}
+    {% endif %}
+  {% endfor %}
+  
+  <div class="funnel-discount-banner-advanced" style="
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    position: relative;
+    overflow: hidden;
+  ">
+    {% comment %} Background pattern {% endcomment %}
+    <div style="
+      position: absolute;
+      top: -50%;
+      right: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+      background-size: 20px 20px;
+      animation: float 20s infinite linear;
+      pointer-events: none;
+    "></div>
+    
+    <div style="position: relative; z-index: 1;">
+      {% if current_tier %}
+        {% comment %} Currently active discount {% endcomment %}
+        <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
+          <div style="font-size: 32px;">🎉</div>
+          <div>
+            <h3 style="margin: 0 0 5px 0; font-size: 20px; font-weight: 700;">
+              {{ current_tier.discount_percentage }}% OFF Active!
+            </h3>
+            <p style="margin: 0; font-size: 14px; opacity: 0.9;">
+              You're saving {{ current_tier.discount_percentage }}% on {{ cart_quantity }} items
+            </p>
+          </div>
+        </div>
+      {% else %}
+        {% comment %} Progress towards next discount {% endcomment %}
+        {% if next_tier %}
+          <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
+            <div style="font-size: 28px;">🎯</div>
+            <div>
+              <h3 style="margin: 0 0 5px 0; font-size: 18px; font-weight: 600;">
+                {{ current_funnel.banner_text | default: 'Unlock Bigger Savings!' }}
+              </h3>
+              <p style="margin: 0; font-size: 14px; opacity: 0.9;">
+                Buy {{ next_tier.min_quantity | minus: cart_quantity }} more items for {{ next_tier.discount_percentage }}% off
+              </p>
+            </div>
+          </div>
+          
+          {% comment %} Progress bar {% endcomment %}
+          <div style="
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            height: 8px;
+            margin: 15px 0;
+            overflow: hidden;
+          ">
+            <div style="
+              background: linear-gradient(90deg, #4ade80, #22c55e);
+              height: 100%;
+              width: {{ cart_quantity | times: 100 | divided_by: next_tier.min_quantity }}%;
+              border-radius: 10px;
+              transition: width 0.3s ease;
+            "></div>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; font-size: 12px; opacity: 0.8;">
+            <span>{{ cart_quantity }} items</span>
+            <span>{{ next_tier.min_quantity }} items needed</span>
+          </div>
+        {% else %}
+          {% comment %} General discount info {% endcomment %}
+          <div style="display: flex; align-items: center; justify-content: center; gap: 15px;">
+            <div style="font-size: 28px;">🎯</div>
+            <div>
+              <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">
+                {{ current_funnel.banner_text | default: 'Special Discount Available!' }}
+              </h3>
+              <p style="margin: 0; font-size: 14px; opacity: 0.9;">
+                Save up to {{ discount_info.max_discount | default: 20 }}% when you buy more!
+              </p>
+            </div>
+          </div>
+        {% endif %}
+      {% endif %}
+      
+      {% comment %} Quantity selector buttons {% endcomment %}
+      <div class="quantity-selector-advanced" style="margin-top: 20px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.2);">
+        <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: 500;">
+          {% if cart_quantity > 0 %}
+            Current in cart: {{ cart_quantity }} items
+          {% else %}
+            Choose quantity to activate discounts:
+          {% endif %}
+        </p>
+        
+        <div class="quantity-buttons-advanced" style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
+          {% for tier in discount_info.quantity_tiers %}
+            <button 
+              class="quantity-btn-advanced" 
+              data-quantity="{{ tier.min_quantity }}"
+              data-discount="{{ tier.discount_percentage }}"
+              style="
+                background: rgba(255,255,255,0.15);
+                border: 2px solid rgba(255,255,255,0.3);
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                font-size: 14px;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.3s ease;
+                min-width: 130px;
+                position: relative;
+                overflow: hidden;
+                {% if current_tier and tier.min_quantity == current_tier.min_quantity %}
+                  background: rgba(255,255,255,0.3);
+                  border-color: rgba(255,255,255,0.5);
+                  box-shadow: 0 0 20px rgba(255,255,255,0.3);
+                {% endif %}
+              "
+              onmouseover="this.style.background='rgba(255,255,255,0.25)'; this.style.borderColor='rgba(255,255,255,0.5)'; this.style.transform='translateY(-3px)';"
+              onmouseout="this.style.background='{% if current_tier and tier.min_quantity == current_tier.min_quantity %}rgba(255,255,255,0.3){% else %}rgba(255,255,255,0.15){% endif %}'; this.style.borderColor='{% if current_tier and tier.min_quantity == current_tier.min_quantity %}rgba(255,255,255,0.5){% else %}rgba(255,255,255,0.3){% endif %}'; this.style.transform='translateY(0)';"
+            >
+              <div style="font-size: 16px; font-weight: 700;">{{ tier.min_quantity }} items</div>
+              <div style="font-size: 12px; opacity: 0.8; margin-top: 2px;">{{ tier.discount_percentage }}% OFF</div>
+              {% if current_tier and tier.min_quantity == current_tier.min_quantity %}
+                <div style="position: absolute; top: 5px; right: 5px; font-size: 12px;">✓</div>
+              {% endif %}
+            </button>
+          {% endfor %}
+        </div>
+        
+        {% comment %} Current quantity display {% endcomment %}
+        <div class="current-quantity-advanced" style="margin-top: 15px; font-size: 14px; opacity: 0.9;">
+          <span id="current-qty-advanced">{{ cart_quantity }}</span> items in cart
+        </div>
+      </div>
+
+      {% comment %} Discount tiers info {% endcomment %}
+      {% if discount_info.quantity_tiers.size > 1 %}
+        <div style="
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 1px solid rgba(255,255,255,0.2);
+          font-size: 12px;
+          opacity: 0.8;
+        ">
+          <div style="margin-bottom: 5px; font-weight: 600;">All Discount Tiers:</div>
+          {% for tier in discount_info.quantity_tiers %}
+            <span style="
+              display: inline-block;
+              margin: 2px 5px;
+              padding: 2px 8px;
+              background: rgba(255,255,255,0.2);
+              border-radius: 12px;
+              {% if current_tier and tier.min_quantity == current_tier.min_quantity %}
+                background: rgba(255,255,255,0.4);
+                font-weight: 600;
+              {% endif %}
+            ">
+              {{ tier.min_quantity }}+ = {{ tier.discount_percentage }}% off
+            </span>
+          {% endfor %}
+        </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <style>
+    .funnel-discount-banner-advanced {
+      animation: slideInUp 0.6s ease-out;
+    }
+    
+    @keyframes slideInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    @keyframes float {
+      0% { transform: translateX(0) translateY(0); }
+      100% { transform: translateX(-20px) translateY(-20px); }
+    }
+    
+    .funnel-discount-banner-advanced:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+    }
+    
+    .funnel-discount-banner-advanced:hover .progress-bar {
+      animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    
+    .quantity-btn-advanced:hover {
+      background: rgba(255,255,255,0.25) !important;
+      border-color: rgba(255,255,255,0.5) !important;
+      transform: translateY(-3px) !important;
+    }
+    
+    .quantity-btn-advanced:active {
+      transform: translateY(0) !important;
+    }
+  </style>
+
+  <script>
+    if (typeof document !== 'undefined') {
+      document.addEventListener('DOMContentLoaded', function() {
+      const quantityButtons = document.querySelectorAll('.quantity-btn-advanced');
+      const currentQtySpan = document.getElementById('current-qty-advanced');
+      
+      quantityButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const quantity = parseInt(this.dataset.quantity);
+          const discount = this.dataset.discount;
+          
+          // Add to cart with specified quantity
+          addToCartWithQuantity(quantity);
+          
+          // Update UI
+          updateQuantityDisplay(quantity);
+          
+          // Show success message
+          showSuccessMessage(quantity, discount);
+        });
+      });
+      
+      function addToCartWithQuantity(quantity) {
+        // Get the product form
+        const productForm = document.querySelector('form[action*="/cart/add"]');
+        if (!productForm) {
+          console.error('Product form not found');
+          return;
+        }
+        
+        // Get the quantity input
+        let quantityInput = productForm.querySelector('input[name="quantity"]');
+        if (!quantityInput) {
+          // Create quantity input if it doesn't exist
+          quantityInput = document.createElement('input');
+          quantityInput.type = 'hidden';
+          quantityInput.name = 'quantity';
+          if (productForm) {
+            productForm.appendChild(quantityInput);
+          }
+        }
+        
+        // Set the quantity
+        quantityInput.value = quantity;
+        
+        // Submit the form
+        productForm.submit();
+      }
+      
+      function updateQuantityDisplay(quantity) {
+        if (currentQtySpan) {
+          currentQtySpan.textContent = quantity;
+        }
+      }
+      
+      function showSuccessMessage(quantity, discount) {
+        // Create success message
+        const message = document.createElement('div');
+        message.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: linear-gradient(135deg, #4CAF50, #45a049);
+          color: white;
+          padding: 15px 20px;
+          border-radius: 10px;
+          box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+          z-index: 1000;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 14px;
+          font-weight: 500;
+          animation: slideInRight 0.3s ease-out;
+        `;
+        message.innerHTML = `🎉 Added ${quantity} items to cart! ${discount}% discount applied.`;
+        
+        if (document.body) {
+          document.body.appendChild(message);
+        }
+        
+        // Remove message after 4 seconds
+        setTimeout(() => {
+          message.style.animation = 'slideOutRight 0.3s ease-in';
+          setTimeout(() => message.remove(), 300);
+        }, 4000);
+      }
+    });
+    
+    // Add CSS for success message animation
+    const style = document.createElement('style');
+    style.textContent = `
+      @keyframes slideInRight {
+        from {
+          opacity: 0;
+          transform: translateX(100%);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      
+      @keyframes slideOutRight {
+        from {
+          opacity: 1;
+          transform: translateX(0);
+        }
+        to {
+          opacity: 0;
+          transform: translateX(100%);
+        }
+      }
+    `;
+    if (document.head) {
+      document.head.appendChild(style);
+    }
+    }
+  </script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Advanced Discount Banner",
+  "target": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Banner Settings"
+    },
+    {
+      "type": "text",
+      "id": "banner_text",
+      "label": "Banner Text",
+      "default": "Unlock Bigger Savings!",
+      "info": "This text will be overridden by funnel settings"
+    },
+    {
+      "type": "color",
+      "id": "banner_color",
+      "label": "Banner Background Color",
+      "default": "#667eea"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_progress",
+      "label": "Show Progress Bar",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_tiers",
+      "label": "Show Discount Tiers",
+      "default": true
+    },
+    {
+      "type": "checkbox",
+      "id": "show_animation",
+      "label": "Show Animation",
+      "default": true
+    }
+  ]
+}
+{% endschema %}

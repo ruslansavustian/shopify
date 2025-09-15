@@ -1,0 +1,191 @@
+{% comment %}
+  Funnel Discount Display Block
+  Показывает баннер со скидкой для товаров, которые входят в воронку
+{% endcomment %}
+
+{% schema %}
+{
+  "name": "Funnel Discount Display",
+  "target": "section",
+  "settings": [
+    {
+      "type": "text",
+      "id": "title",
+      "label": "Default Title",
+      "default": "Special Discount Available!"
+    },
+    {
+      "type": "color",
+      "id": "background_color",
+      "label": "Background Color",
+      "default": "#f0f8ff"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Text Color",
+      "default": "#2c5aa0"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_dynamic_pricing",
+      "label": "Show Dynamic Pricing",
+      "default": true
+    }
+  ]
+}
+{% endschema %}
+
+
+{% assign product_id = 'gid://shopify/Product/' | append: product.id %}
+{% assign show_discount = false %}
+{% assign funnel_data = null %}
+
+{% comment %} Проверяем воронки и статус {% endcomment %}
+{% if shop.metafields.funnel_discounts.funnels %}
+  {% if shop.metafields.funnel_discounts.funnels.value %}
+    {% assign funnels = shop.metafields.funnel_discounts.funnels.value | parse_json %}
+  {% else %}
+    {% assign funnels = shop.metafields.funnel_discounts.funnels | parse_json %}
+  {% endif %}
+  
+  {% for funnel in funnels %}
+    {% if funnel.products contains product_id %}
+      {% assign funnel_status = funnel.status | upcase %}
+      {% if funnel.status == blank or funnel_status == "ACTIVE" %}
+        {% assign show_discount = true %}
+        {% assign funnel_data = funnel %}
+        {% break %}
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+<div class="funnel-discount-display" id="funnel-discount-{{ product.id }}">
+  {% if show_discount and funnel_data %}
+    <div class="discount-banner" style="background: {{ block.settings.background_color | default: '#f0f8ff' }}; border: 1px solid #4a90e2; border-radius: 8px; padding: 15px; margin: 10px 0;">
+      <div class="discount-message" style="font-size: 16px; color: {{ block.settings.text_color | default: '#2c5aa0' }}; margin-bottom: 10px;">
+        <strong>{{ funnel_data.banner_text | default: block.settings.title }}</strong>
+      </div>
+      
+      {% if block.settings.show_dynamic_pricing and funnel_data %}
+        <div class="dynamic-pricing" style="background: #f8f9fa; padding: 15px; border-radius: 6px; margin-top: 15px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-size: 14px; color: #666;">Unit Price:</div>
+            <div class="unit-price-display" style="font-size: 18px; font-weight: bold;">
+              <span class="original-unit-price" style="text-decoration: line-through; color: #999; margin-right: 8px;">{{ product.price | money }}</span>
+              <span class="discounted-unit-price" style="color: #e74c3c;">{{ product.price | money }}</span>
+            </div>
+          </div>
+          
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <div style="font-size: 14px; color: #666;">You Save:</div>
+            <div class="savings-display" style="font-size: 16px; font-weight: bold; color: #27ae60;">
+              <span class="savings-amount">$0.00</span>
+              <span class="savings-percentage" style="font-size: 14px; margin-left: 5px;">(0%)</span>
+            </div>
+          </div>
+          
+          <div style="border-top: 1px solid #e0e0e0; padding-top: 10px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="font-size: 14px; color: #666;">Total Price:</div>
+              <div class="total-price-display" style="font-size: 20px; font-weight: bold; color: #2c5aa0;">
+                <span class="total-discounted-price">{{ product.price | money }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+
+      {% if funnel_data and funnel_data.discount_settings and funnel_data.discount_settings.quantity_tiers %}
+        <div class="discount-tiers" style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 6px; border-left: 4px solid #ffc107;">
+          <div style="font-size: 16px; color: #856404; font-weight: bold; margin-bottom: 12px; display: flex; align-items: center;">
+            <span style="margin-right: 8px;">🎯</span>
+            Volume Discounts Available
+          </div>
+          <div style="display: grid; gap: 8px;">
+            {% for tier in funnel_data.discount_settings.quantity_tiers %}
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #ffffff; border-radius: 4px; border: 1px solid #ffeaa7;">
+                <span style="font-size: 14px; color: #6c757d;">Buy {{ tier.min_quantity }}+ items</span>
+                <span style="font-size: 14px; font-weight: bold; color: #27ae60; background: #d4edda; padding: 4px 8px; border-radius: 12px;">
+                  {{ tier.discount_percentage }}% OFF
+                </span>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      {% endif %}
+    </div>
+  {% endif %}
+</div>
+
+{% if block.settings.show_dynamic_pricing and show_discount and funnel_data and funnel_data.discount_settings and funnel_data.discount_settings.quantity_tiers %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const productId = '{{ product.id }}';
+  const originalPrice = {{ product.price }};
+  const discountTiers = {{ funnel_data.discount_settings.quantity_tiers | json }};
+
+  function updatePricing(quantity) {
+    const qty = parseInt(quantity) || 1;
+    let discount = 0;
+    
+    // Найти применимую скидку
+    for (let i = discountTiers.length - 1; i >= 0; i--) {
+      if (qty >= discountTiers[i].min_quantity) {
+        discount = discountTiers[i].discount_percentage;
+        break;
+      }
+    }
+    
+    // Расчеты
+    const discountedUnitPrice = originalPrice * (1 - discount / 100);
+    const originalTotal = originalPrice * qty;
+    const discountedTotal = discountedUnitPrice * qty;
+    const totalSavings = originalTotal - discountedTotal;
+    
+    // Обновление цены за единицу
+    const originalUnitSpan = document.querySelector('.original-unit-price');
+    const discountedUnitSpan = document.querySelector('.discounted-unit-price');
+    
+    if (discount > 0) {
+      originalUnitSpan.style.display = 'inline';
+      originalUnitSpan.textContent = formatMoney(originalPrice);
+      discountedUnitSpan.textContent = formatMoney(discountedUnitPrice);
+    } else {
+      originalUnitSpan.style.display = 'none';
+      discountedUnitSpan.textContent = formatMoney(originalPrice);
+    }
+    
+    // Обновление экономии
+    const savingsAmountSpan = document.querySelector('.savings-amount');
+    const savingsPercentageSpan = document.querySelector('.savings-percentage');
+    
+    if (discount > 0) {
+      savingsAmountSpan.textContent = formatMoney(totalSavings);
+      savingsPercentageSpan.textContent = `(${discount}%)`;
+    } else {
+      savingsAmountSpan.textContent = '$0.00';
+      savingsPercentageSpan.textContent = '(0%)';
+    }
+    
+    // Обновление общей стоимости
+    const totalPriceSpan = document.querySelector('.total-discounted-price');
+    totalPriceSpan.textContent = formatMoney(discountedTotal);
+  }
+
+  function formatMoney(cents) {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD'
+    }).format(cents / 100);
+  }
+
+  const qtyInput = document.querySelector('input[name="quantity"]');
+  if (qtyInput) {
+    qtyInput.addEventListener('change', () => updatePricing(qtyInput.value));
+    updatePricing(qtyInput.value);
+  }
+});
+</script>
+{% endif %}

@@ -1,0 +1,269 @@
+{% comment %}
+  Discount Banner Block for Funnel Discounts App
+  Displays discount information based on product metafields
+  Includes quantity selector buttons for easy purchasing
+{% endcomment %}
+
+{% assign product_id = product.id | append: '' %}
+{% assign funnel_data = shop.metafields.funnel_discounts.funnels %}
+{% assign current_funnel = null %}
+{% assign discount_info = null %}
+{% assign cart_quantity = 0 %}
+
+{% comment %} Find the funnel that contains this product {% endcomment %}
+{% if funnel_data %}
+  {% assign funnels = funnel_data.value %}
+  {% if funnels %}
+    {% for funnel in funnels %}
+      {% if funnel.products contains product_id %}
+        {% assign current_funnel = funnel %}
+        {% break %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
+
+{% comment %} Calculate current cart quantity for this funnel {% endcomment %}
+{% if current_funnel %}
+  {% for item in cart.items %}
+    {% assign item_product_id = item.product.id | append: '' %}
+    {% if current_funnel.products contains item_product_id %}
+      {% assign cart_quantity = cart_quantity | plus: item.quantity %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% comment %} Only show banner if product is in a funnel {% endcomment %}
+{% if current_funnel %}
+  {% assign discount_info = current_funnel.discount_settings %}
+  
+  <div class="funnel-discount-banner" style="
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 20px;
+    margin: 20px 0;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  ">
+    <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 20px;">
+      <div style="font-size: 28px;">🎯</div>
+      <div>
+        <h3 style="margin: 0 0 8px 0; font-size: 20px; font-weight: 600;">
+          {{ current_funnel.banner_text | default: 'Special Discount Available!' }}
+        </h3>
+        <p style="margin: 0; font-size: 14px; opacity: 0.9;">
+          {% if discount_info.quantity_tiers %}
+            {% for tier in discount_info.quantity_tiers %}
+              {% if forloop.first %}
+                Buy {{ tier.min_quantity }}+ items and save {{ tier.discount_percentage }}%
+              {% elsif forloop.last %}
+                or {{ tier.min_quantity }}+ items for {{ tier.discount_percentage }}% off
+              {% else %}
+                , {{ tier.min_quantity }}+ for {{ tier.discount_percentage }}% off
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            Save up to {{ discount_info.max_discount | default: 20 }}% when you buy more!
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+    {% comment %} Quantity selector buttons {% endcomment %}
+    <div class="quantity-selector" style="margin-top: 15px;">
+      <p style="margin: 0 0 15px 0; font-size: 16px; font-weight: 500;">
+        {% if cart_quantity > 0 %}
+          Current in cart: {{ cart_quantity }} items
+        {% else %}
+          Choose quantity to activate discounts:
+        {% endif %}
+      </p>
+      
+      <div class="quantity-buttons" style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+        {% for tier in discount_info.quantity_tiers %}
+          <button 
+            class="quantity-btn" 
+            data-quantity="{{ tier.min_quantity }}"
+            data-discount="{{ tier.discount_percentage }}"
+            style="
+              background: rgba(255,255,255,0.2);
+              border: 2px solid rgba(255,255,255,0.3);
+              color: white;
+              padding: 12px 20px;
+              border-radius: 8px;
+              font-size: 14px;
+              font-weight: 600;
+              cursor: pointer;
+              transition: all 0.3s ease;
+              min-width: 120px;
+            "
+            onmouseover="this.style.background='rgba(255,255,255,0.3)'; this.style.borderColor='rgba(255,255,255,0.5)';"
+            onmouseout="this.style.background='rgba(255,255,255,0.2)'; this.style.borderColor='rgba(255,255,255,0.3)';"
+          >
+            {{ tier.min_quantity }} items<br>
+            <small style="font-size: 12px; opacity: 0.8;">{{ tier.discount_percentage }}% OFF</small>
+          </button>
+        {% endfor %}
+      </div>
+      
+      {% comment %} Current quantity display {% endcomment %}
+      <div class="current-quantity" style="margin-top: 15px; font-size: 14px; opacity: 0.9;">
+        <span id="current-qty">{{ cart_quantity }}</span> items in cart
+      </div>
+    </div>
+  </div>
+
+  <style>
+    .funnel-discount-banner {
+      animation: slideIn 0.5s ease-out;
+    }
+    
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .funnel-discount-banner:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+    }
+    
+    .quantity-btn:hover {
+      background: rgba(255,255,255,0.3) !important;
+      border-color: rgba(255,255,255,0.5) !important;
+      transform: translateY(-2px);
+    }
+    
+    .quantity-btn:active {
+      transform: translateY(0);
+    }
+  </style>
+
+  <script>
+    if (typeof document !== 'undefined') {
+      document.addEventListener('DOMContentLoaded', function() {
+      const quantityButtons = document.querySelectorAll('.quantity-btn');
+      const currentQtySpan = document.getElementById('current-qty');
+      
+      quantityButtons.forEach(button => {
+        button.addEventListener('click', function() {
+          const quantity = parseInt(this.dataset.quantity);
+          const discount = this.dataset.discount;
+          
+          // Add to cart with specified quantity
+          addToCartWithQuantity(quantity);
+          
+          // Update UI
+          updateQuantityDisplay(quantity);
+          
+          // Show success message
+          showSuccessMessage(quantity, discount);
+        });
+      });
+      
+      function addToCartWithQuantity(quantity) {
+        // Get the product form
+        const productForm = document.querySelector('form[action*="/cart/add"]');
+        if (!productForm) {
+          console.error('Product form not found');
+          return;
+        }
+        
+        // Get the quantity input
+        let quantityInput = productForm.querySelector('input[name="quantity"]');
+        if (!quantityInput) {
+          // Create quantity input if it doesn't exist
+          quantityInput = document.createElement('input');
+          quantityInput.type = 'hidden';
+          quantityInput.name = 'quantity';
+          if (productForm) {
+            productForm.appendChild(quantityInput);
+          }
+        }
+        
+        // Set the quantity
+        quantityInput.value = quantity;
+        
+        // Submit the form
+        productForm.submit();
+      }
+      
+      function updateQuantityDisplay(quantity) {
+        if (currentQtySpan) {
+          currentQtySpan.textContent = quantity;
+        }
+      }
+      
+      function showSuccessMessage(quantity, discount) {
+        // Create success message
+        const message = document.createElement('div');
+        message.style.cssText = `
+          position: fixed;
+          top: 20px;
+          right: 20px;
+          background: #4CAF50;
+          color: white;
+          padding: 15px 20px;
+          border-radius: 8px;
+          box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+          z-index: 1000;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+          font-size: 14px;
+          font-weight: 500;
+        `;
+        message.innerHTML = `✅ Added ${quantity} items to cart! ${discount}% discount applied.`;
+        
+        if (document.body) {
+          document.body.appendChild(message);
+        }
+        
+        // Remove message after 3 seconds
+        setTimeout(() => {
+          message.remove();
+        }, 3000);
+      }
+    });
+    }
+  </script>
+{% endif %}
+
+{% schema %}
+{
+  "name": "Discount Banner",
+  "target": "section",
+  "settings": [
+    {
+      "type": "header",
+      "content": "Banner Settings"
+    },
+    {
+      "type": "text",
+      "id": "banner_text",
+      "label": "Banner Text",
+      "default": "Special Discount Available!",
+      "info": "This text will be overridden by funnel settings"
+    },
+    {
+      "type": "color",
+      "id": "banner_color",
+      "label": "Banner Background Color",
+      "default": "#667eea"
+    },
+    {
+      "type": "checkbox",
+      "id": "show_animation",
+      "label": "Show Animation",
+      "default": true
+    }
+  ]
+}
+{% endschema %}

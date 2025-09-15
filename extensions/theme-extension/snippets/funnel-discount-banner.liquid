@@ -1,0 +1,124 @@
+{% comment %}
+  Funnel Discount Banner Snippet
+  Can be included anywhere in the theme
+  Usage: {% render 'funnel-discount-banner', product: product, style: 'compact' %}
+{% endcomment %}
+
+{% assign product_id = product.id | append: '' %}
+{% assign funnel_data = shop.metafields.funnel_discounts.funnels %}
+{% assign current_funnel = null %}
+{% assign discount_info = null %}
+{% assign cart_quantity = 0 %}
+{% assign banner_style = style | default: 'default' %}
+
+{% comment %} Find the funnel that contains this product {% endcomment %}
+{% if funnel_data %}
+  {% assign funnels = funnel_data.value %}
+  {% if funnels %}
+    {% for funnel in funnels %}
+      {% if funnel.products contains product_id %}
+        {% assign current_funnel = funnel %}
+        {% break %}
+      {% endif %}
+    {% endfor %}
+  {% endif %}
+{% endif %}
+
+{% comment %} Calculate current cart quantity for this funnel {% endcomment %}
+{% if current_funnel %}
+  {% for item in cart.items %}
+    {% assign item_product_id = item.product.id | append: '' %}
+    {% if current_funnel.products contains item_product_id %}
+      {% assign cart_quantity = cart_quantity | plus: item.quantity %}
+    {% endif %}
+  {% endfor %}
+{% endif %}
+
+{% comment %} Only show banner if product is in a funnel {% endcomment %}
+{% if current_funnel %}
+  {% assign discount_info = current_funnel.discount_settings %}
+  {% assign next_tier = null %}
+  {% assign current_tier = null %}
+  
+  {% comment %} Find current and next discount tiers {% endcomment %}
+  {% for tier in discount_info.quantity_tiers %}
+    {% if cart_quantity >= tier.min_quantity %}
+      {% assign current_tier = tier %}
+    {% elsif next_tier == null or tier.min_quantity < next_tier.min_quantity %}
+      {% assign next_tier = tier %}
+    {% endif %}
+  {% endfor %}
+  
+  {% if banner_style == 'compact' %}
+    {% comment %} Compact banner style {% endcomment %}
+    <div class="funnel-discount-banner-compact" style="
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 10px 15px;
+      margin: 10px 0;
+      border-radius: 6px;
+      text-align: center;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+    ">
+      {% if current_tier %}
+        <span style="font-weight: 600;">🎉 {{ current_tier.discount_percentage }}% OFF Active!</span>
+      {% elsif next_tier %}
+        <span>🎯 Buy {{ next_tier.min_quantity | minus: cart_quantity }} more for {{ next_tier.discount_percentage }}% off</span>
+      {% else %}
+        <span>🎯 {{ current_funnel.banner_text | default: 'Special discount available!' }}</span>
+      {% endif %}
+    </div>
+  {% elsif banner_style == 'inline' %}
+    {% comment %} Inline banner style {% endcomment %}
+    <div class="funnel-discount-banner-inline" style="
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 5px 10px;
+      margin: 5px;
+      border-radius: 4px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 12px;
+      font-weight: 600;
+    ">
+      {% if current_tier %}
+        {{ current_tier.discount_percentage }}% OFF
+      {% elsif next_tier %}
+        Save {{ next_tier.discount_percentage }}% with {{ next_tier.min_quantity }}+ items
+      {% else %}
+        Discount Available
+      {% endif %}
+    </div>
+  {% else %}
+    {% comment %} Default banner style {% endcomment %}
+    <div class="funnel-discount-banner-default" style="
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 20px;
+      margin: 15px 0;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    ">
+      <div style="display: flex; align-items: center; justify-content: center; gap: 10px;">
+        <div style="font-size: 24px;">🎯</div>
+        <div>
+          <h3 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 600;">
+            {{ current_funnel.banner_text | default: 'Special Discount Available!' }}
+          </h3>
+          <p style="margin: 0; font-size: 14px; opacity: 0.9;">
+            {% if current_tier %}
+              You're saving {{ current_tier.discount_percentage }}% on {{ cart_quantity }} items
+            {% elsif next_tier %}
+              Buy {{ next_tier.min_quantity | minus: cart_quantity }} more items for {{ next_tier.discount_percentage }}% off
+            {% else %}
+              Save up to {{ discount_info.max_discount | default: 20 }}% when you buy more!
+            {% endif %}
+          </p>
+        </div>
+      </div>
+    </div>
+  {% endif %}
+{% endif %}
