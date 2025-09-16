@@ -201,8 +201,6 @@ export async function getAnalytics(admin: any) {
         }
       }`,
   );
-
-  // Базовая структура аналитики
   let analytics: {
     total_discounts_issued: number;
     total_discount_amount: number;

@@ -1,15 +1,24 @@
 import { PrismaClient } from "@prisma/client";
 
 declare global {
-  var prismaGlobal: PrismaClient;
+  var prismaGlobal: PrismaClient | undefined;
 }
 
-if (process.env.NODE_ENV !== "production") {
-  if (!global.prismaGlobal) {
-    global.prismaGlobal = new PrismaClient();
-  }
-}
+// Создаем Prisma клиент с правильной конфигурацией
+const createPrismaClient = () => {
+  return new PrismaClient({
+    log:
+      process.env.NODE_ENV === "development"
+        ? ["query", "error", "warn"]
+        : ["error"],
+  });
+};
 
-const prisma = global.prismaGlobal ?? new PrismaClient();
+// В development используем глобальную переменную для hot reload
+// В production создаем новый экземпляр
+const prisma =
+  process.env.NODE_ENV === "production"
+    ? createPrismaClient()
+    : (global.prismaGlobal ??= createPrismaClient());
 
 export default prisma;

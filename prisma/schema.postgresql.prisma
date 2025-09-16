@@ -25,3 +25,48 @@ model Session {
   collaborator  Boolean?
   emailVerified Boolean?
 }
+
+model OrderAnalytics {
+  id              String   @id @default(cuid())
+  orderId         String   @unique
+  orderName       String
+  shopDomain      String
+  customerEmail   String?
+  discountAmount  Float    @default(0)
+  totalAmount     Float
+  lineItemsCount  Int      @default(0)
+  funnelId        String?
+  funnelName      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("order_analytics")
+}
+
+model FunnelPerformance {
+  id              String   @id @default(cuid())
+  funnelId        String   @unique
+  funnelName      String
+  shopDomain      String
+  discountsIssued Int      @default(0)
+  totalDiscountAmount Float @default(0)
+  ordersAffected  Int      @default(0)
+  conversionRate  Float    @default(0)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@map("funnel_performance")
+}
+
+model ShopAnalytics {
+  id                    String   @id @default(cuid())
+  shopDomain            String   @unique
+  totalDiscountsIssued  Int      @default(0)
+  totalDiscountAmount   Float    @default(0)
+  totalOrders           Int      @default(0)
+  lastUpdated           DateTime @default(now())
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("shop_analytics")
+}

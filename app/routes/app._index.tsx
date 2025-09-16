@@ -1,4 +1,5 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@remix-run/node";
+import { json } from "@remix-run/node";
 import {
   useLoaderData,
   Link,
@@ -32,16 +33,31 @@ import {
   getAllData,
   getAllDiscountNodes,
   getAllFunnels,
-  getAnalytics,
   updateFunnels,
 } from "app/lib/graphql";
+import { getAnalyticsSummary } from "app/lib/analytics.server";
+import { AnalyticsDisplay } from "../components/AnalyticsDisplay";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
   const { admin } = await authenticate.admin(request);
   const { funnels, products, discounts } = await getAllData(admin);
-  const analytics = await getAnalytics(admin);
-  console.log("analytics", analytics);
-  return Response.json({ funnels, products, discounts, analytics });
+
+  // Получаем shop domain через GraphQL запрос
+  const shopResponse = await admin.graphql(`
+    query getShop {
+      shop {
+        myshopifyDomain
+      }
+    }
+  `);
+
+  const shopData = await shopResponse.json();
+  const shopDomain = shopData.data?.shop?.myshopifyDomain || "unknown";
+
+  const analytics = await getAnalyticsSummary(shopDomain);
+
+  console.log("analytics from DB", analytics);
+  return json({ funnels, products, discounts, analytics });
 };
 
 export const action = async ({ request }: ActionFunctionArgs) => {
@@ -129,7 +145,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
 
     await updateFunnels(admin, existingFunnels, shopId, variablesForMetafield);
 
-    return Response.json({ success: true, funnel: newFunnel });
+    return json({ success: true, funnel: newFunnel });
   }
 
   if (action === "delete_funnel") {
@@ -150,7 +166,7 @@ export const action = async ({ request }: ActionFunctionArgs) => {
     };
     await updateFunnels(admin, updatedFunnels, shopId, variablesForMetafield);
 
-    return Response.json({ success: true });
+    return json({ success: true });
   }
 
   if (action === "change_status") {
@@ -173,10 +189,10 @@ export const action = async ({ request }: ActionFunctionArgs) => {
       },
     };
     await updateFunnels(admin, updatedFunnels, shopId, variablesForMetafield);
-    return Response.json({ success: true });
+    return json({ success: true });
   }
 
-  return Response.json({ success: false });
+  return json({ success: false });
 };
 
 export default function Index() {
@@ -238,61 +254,7 @@ export default function Index() {
 
         {/* Analytics Section */}
         <Layout.Section>
-          <BlockStack gap="400">
-            <Text as="h2" variant="headingMd">
-              📊 Analytics Overview
-            </Text>
-
-            <Layout>
-              <Layout.Section variant="oneThird">
-                <Card>
-                  <BlockStack gap="200">
-                    <Text as="h3" variant="headingSm" tone="subdued">
-                      Total Discounts Issued
-                    </Text>
-                    <Text as="p" variant="headingLg" fontWeight="bold">
-                      {analytics.total_discounts_issued}
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="success">
-                      🎟️ Discount applications
-                    </Text>
-                  </BlockStack>
-                </Card>
-              </Layout.Section>
-
-              <Layout.Section variant="oneThird">
-                <Card>
-                  <BlockStack gap="200">
-                    <Text as="h3" variant="headingSm" tone="subdued">
-                      Total Savings Provided
-                    </Text>
-                    <Text as="p" variant="headingLg" fontWeight="bold">
-                      ${(analytics.total_discount_amount || 0).toFixed(2)}
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="success">
-                      💰 Customer savings
-                    </Text>
-                  </BlockStack>
-                </Card>
-              </Layout.Section>
-
-              <Layout.Section variant="oneThird">
-                <Card>
-                  <BlockStack gap="200">
-                    <Text as="h3" variant="headingSm" tone="subdued">
-                      Orders with Discounts
-                    </Text>
-                    <Text as="p" variant="headingLg" fontWeight="bold">
-                      {analytics.total_orders}
-                    </Text>
-                    <Text as="p" variant="bodySm" tone="success">
-                      📦 Successful orders
-                    </Text>
-                  </BlockStack>
-                </Card>
-              </Layout.Section>
-            </Layout>
-          </BlockStack>
+          <AnalyticsDisplay analytics={analytics} />
         </Layout.Section>
         <Layout.Section>
           <Card>

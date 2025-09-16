@@ -2,7 +2,7 @@
 
 client_id = "dc0b0520ad9dbf1b00ab7727ee807509"
 name = "funnel-discounts-app"
-application_url = "https://localhost:3458"
+application_url = "https://localhost:3000"
 embedded = true
 handle = "funnel-discounts-app-1"
 
@@ -18,7 +18,7 @@ api_version = "2025-04"
 scopes = "read_discounts,read_orders,read_products,read_themes,write_discounts,write_orders,write_products,write_themes"
 
 [auth]
-redirect_urls = ["https://localhost:3458/auth/callback", "https://localhost:3458/auth/shopify/callback", "https://localhost:3458/api/auth/callback"]
+redirect_urls = ["https://localhost:3000/auth/callback", "https://localhost:3000/auth/shopify/callback", "https://localhost:3000/api/auth/callback"]
 
 [pos]
 embedded = false

@@ -3,7 +3,11 @@
   "private": true,
   "scripts": {
     "build": "remix vite:build",
-    "dev": "shopify app dev",
+    "dev": "shopify app dev --use-localhost --localhost-port=3000",
+    "dev:localhost": "shopify app dev --use-localhost",
+    "dev:port": "PORT=8080 shopify app dev --use-localhost",
+    "dev:ngrok": "echo 'Use: npm run dev:localhost and then manually start ngrok'",
+    "webhooks:show": "echo 'Webhook URLs for manual setup:' && echo 'orders/paid: YOUR_NGROK_URL/webhooks/orders/paid' && echo 'app/uninstalled: YOUR_NGROK_URL/webhooks/app/uninstalled' && echo 'app/scopes_update: YOUR_NGROK_URL/webhooks/app/scopes_update'",
     "config:link": "shopify app config link",
     "generate": "shopify app generate",
     "deploy": "shopify app deploy",

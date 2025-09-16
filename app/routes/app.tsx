@@ -31,9 +31,9 @@ export default function App() {
         <Link to={{ pathname: "/app", search: location.search }} rel="home">
           Funnel Discounts!
         </Link>
-        <Link to={{ pathname: "/app/analytics", search: location.search }}>
+        {/* <Link to={{ pathname: "/app/analytics", search: location.search }}>
           Analytics!
-        </Link>
+        </Link> */}
       </NavMenu>
       <Outlet />
     </AppProvider>
